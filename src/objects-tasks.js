@@ -17,8 +17,9 @@
  *    shallowCopy({a: 2, b: { a: [1, 2, 3]}}) => {a: 2, b: { a: [1, 2, 3]}}
  *    shallowCopy({}) => {}
  */
-function shallowCopy(/* obj */) {
-  throw new Error('Not implemented');
+function shallowCopy(obj) {
+  const newObj = {};
+  return Object.assign(newObj, obj);
 }
 
 /**
@@ -32,8 +33,16 @@ function shallowCopy(/* obj */) {
  *    mergeObjects([{a: 1, b: 2}, {b: 3, c: 5}]) => {a: 1, b: 5, c: 5}
  *    mergeObjects([]) => {}
  */
-function mergeObjects(/* objects */) {
-  throw new Error('Not implemented');
+function mergeObjects(objects) {
+  const obj = {};
+  for (let i = 0; i < objects.length; i += 1) {
+    const entries = Object.entries(objects[i]);
+    for (let j = 0; j < entries.length; j += 1) {
+      const [key, value] = entries[j];
+      obj[key] = value + (obj[key] ?? 0);
+    }
+  }
+  return obj;
 }
 
 /**
@@ -106,8 +115,8 @@ function isEmptyObject(obj) {
  *    immutableObj.newProp = 'new';
  *    console.log(immutableObj) => {a: 1, b: 2}
  */
-function makeImmutable(/* obj */) {
-  throw new Error('Not implemented');
+function makeImmutable(obj) {
+  return Object.freeze(obj);
 }
 
 /**
@@ -201,8 +210,9 @@ function getJSON(obj) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const data = JSON.parse(json);
+  return Object.setPrototypeOf(data, proto);
 }
 
 /**
@@ -340,32 +350,82 @@ function group(array, keySelector, valueSelector) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  value: '',
+  level: 0,
+
+  element(value) {
+    this.validate(1);
+    return Object.setPrototypeOf(
+      { value: this.value + value, level: 1 },
+      cssSelectorBuilder
+    );
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    this.validate(2);
+    return Object.setPrototypeOf(
+      { value: `${this.value}#${value}`, level: 2 },
+      cssSelectorBuilder
+    );
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    this.validate(3);
+    return Object.setPrototypeOf(
+      { value: `${this.value}.${value}`, level: 3 },
+      cssSelectorBuilder
+    );
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    this.validate(4);
+    return Object.setPrototypeOf(
+      { value: `${this.value}[${value}]`, level: 4 },
+      cssSelectorBuilder
+    );
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    this.validate(5);
+    return Object.setPrototypeOf(
+      { value: `${this.value}:${value}`, level: 5 },
+      cssSelectorBuilder
+    );
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    this.validate(6);
+    return Object.setPrototypeOf(
+      { value: `${this.value}::${value}`, level: 6 },
+      cssSelectorBuilder
+    );
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return Object.setPrototypeOf(
+      {
+        value: `${selector1.value} ${combinator} ${selector2.value}`,
+        level: 0,
+      },
+      cssSelectorBuilder
+    );
+  },
+
+  stringify() {
+    return this.value;
+  },
+
+  validate(level) {
+    if (level < this.level) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    if (level === this.level && [1, 2, 6].indexOf(level) !== -1) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
   },
 };
 
